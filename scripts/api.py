@@ -65,19 +65,3 @@ def fetch_OHLCV(tickers,ohlcv_symb,start_date):
     merged_df.to_csv(ohlcv_symb, index=False)
     print(f"\nSaved OHLCV data")
     return merged_df
-
-
-# noinspection PyArgumentList
-def combine_csv(one_month, three_month, six_month, one_year, rankings, output):
-    df1 = pd.read_csv(one_month)
-    df2 = pd.read_csv(three_month)
-    df3 = pd.read_csv(six_month)
-    df4 = pd.read_csv(one_year)
-    df5 = pd.read_csv(rankings)
-
-    df6 = pd.concat([df1, df2, df3, df4], ignore_index=True)
-    df6.drop_duplicates(subset=['symbol', 'datetime'], keep='first')
-    final_df = df6.merge(df5, on='symbol', how='left')
-    final_df.sort_values(['symbol'], ascending=False)
-    final_df.to_csv(output, index=False)
-

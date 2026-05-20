@@ -1,8 +1,10 @@
+from xmlrpc.client import Boolean
+
 import pandas as pd
 import numpy as np
 
 
-def generate_sector_rankings(ohclv_path, sector_path, output_path, rolling_window=2):
+def generate_sector_rankings(ohclv_path, sector_path, output_path, rolling_window=2) -> bool:
     """
     Full pipeline:
       1. 5‑day (or rolling_window) average of %Year, %6Month, %3Month, %1Month per symbol.
@@ -74,5 +76,6 @@ def generate_sector_rankings(ohclv_path, sector_path, output_path, rolling_windo
     # ---------- Finalise ----------
     output_cols = ['symbol', 'sector', 'industry'] + rank_cols + ['composite_score', 'sector_rank']
     result = result[output_cols].sort_values(['industry', 'sector_rank']).reset_index(drop=True)
+    print("Rankings completed...")
     result.to_csv(output_path, index=False)
-    return result
+    return True
