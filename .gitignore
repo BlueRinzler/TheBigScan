@@ -1,4 +1,4 @@
 *.egg-info
-.csv
+*.csv
 #Ignore API Keys
 .env
