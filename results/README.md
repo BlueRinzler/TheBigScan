@@ -1,3 +1,3 @@
 # Results
 
-Put your results here - figures, tables, checkpoints, pickle and hdf5 files, etc.
+Final results, in 3 CSV files
