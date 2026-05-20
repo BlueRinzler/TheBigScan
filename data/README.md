@@ -1,3 +1,3 @@
 # Data
 
-Put your data here. By default, this folder won't be put into version control.
+This data folder houses 3 folders with multiple data files in CSV format. 
