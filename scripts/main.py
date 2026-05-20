@@ -32,8 +32,8 @@ def combine_csv(one_month, three_month, six_month, one_year, rankings, output):
 
 def gen_data():
     load_dotenv()
-    #generate_sector_rankings(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SYMBOLS'), os.getenv('SECTOR_RANKINGS'))
-    #compute_data(os.getenv('OHLCV_DATA_RAW'), os.getenv('COMPUTED_DATA_RAW'))
+    generate_sector_rankings(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SYMBOLS'), os.getenv('SECTOR_RANKINGS'))
+    compute_data(os.getenv('OHLCV_DATA_RAW'), os.getenv('COMPUTED_DATA_RAW'))
 
     filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_MONTH_GAINERS'), time=23)
     filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('THREE_MONTH_GAINERS'),  time=67)

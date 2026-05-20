@@ -63,8 +63,8 @@ def filter_consolidation(
         for _, row in recent.iterrows():
             close = row['close']
             # Check all three SMAs for this row
-            sma10_ok = 0.90 * close <= row['SMA_10'] <= 1.10 * close
-            sma20_ok = 0.90 * close <= row['SMA_20'] <= 1.10 * close
+            sma10_ok = 0.92 * close <= row['SMA_10'] <= 1.08 * close
+            sma20_ok = 0.92 * close <= row['SMA_20'] <= 1.08 * close
             if sma10_ok and sma20_ok:
                 passing_days += 1
 
