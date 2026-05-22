@@ -2,18 +2,16 @@ import os
 import pandas as pd
 
 from dateutil.utils import today
-from scripts.api import fetch_OHLCV
-from scripts.compute import compute_data
-from scripts.rankings import generate_sector_rankings
+import api
+import rankings
+import compute
+import scanner
 from dotenv import load_dotenv
-
-from scripts.scanner import filter_consolidation, filter_momentum
-
 
 def run_API():
     load_dotenv()
     start_date = today() - pd.Timedelta(days=2)
-    fetch_OHLCV(os.getenv('SYMBOLS'), os.getenv('OHLCV_DATA_RAW'), start_date)
+    api.fetch_OHLCV(os.getenv('SYMBOLS'), os.getenv('OHLCV_DATA_RAW'), start_date)
 
 # noinspection PyArgumentList
 def combine_csv(one_month, three_month, six_month, one_year, rankings, output):
@@ -32,18 +30,18 @@ def combine_csv(one_month, three_month, six_month, one_year, rankings, output):
 
 def gen_data():
     load_dotenv()
-    generate_sector_rankings(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SYMBOLS'), os.getenv('SECTOR_RANKINGS'))
-    compute_data(os.getenv('OHLCV_DATA_RAW'), os.getenv('COMPUTED_DATA_RAW'))
+    rankings.generate_sector_rankings(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SYMBOLS'), os.getenv('SECTOR_RANKINGS'))
+    compute.compute_data(os.getenv('OHLCV_DATA_RAW'), os.getenv('COMPUTED_DATA_RAW'))
 
-    filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_MONTH_GAINERS'), time=23)
-    filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('THREE_MONTH_GAINERS'),  time=67)
-    filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SIX_MONTH_GAINERS'), time=137)
-    filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_YEAR_GAINERS'),  time=250)
+    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_MONTH_GAINERS'), time=23)
+    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('THREE_MONTH_GAINERS'),  time=67)
+    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SIX_MONTH_GAINERS'), time=137)
+    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_YEAR_GAINERS'),  time=250)
 
-    filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_MONTH_MOMENTUM'), time=23)
-    filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('THREE_MONTH_MOMENTUM'), time=67)
-    filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SIX_MONTH_MOMENTUM'),time=137)
-    filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_YEAR_MOMENTUM'), time=250)
+    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_MONTH_MOMENTUM'), time=23)
+    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('THREE_MONTH_MOMENTUM'), time=67)
+    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SIX_MONTH_MOMENTUM'),time=137)
+    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_YEAR_MOMENTUM'), time=250)
 
     combine_csv(os.getenv('ONE_MONTH_GAINERS'),
                 os.getenv('THREE_MONTH_GAINERS'),
