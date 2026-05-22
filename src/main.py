@@ -38,10 +38,10 @@ def gen_data():
     scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SIX_MONTH_GAINERS'), time=137)
     scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_YEAR_GAINERS'),  time=250)
 
-    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_MONTH_MOMENTUM'), time=23)
-    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('THREE_MONTH_MOMENTUM'), time=67)
-    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SIX_MONTH_MOMENTUM'),time=137)
-    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_YEAR_MOMENTUM'), time=250)
+    scanner.filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_MONTH_MOMENTUM'), time=23)
+    scanner.filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('THREE_MONTH_MOMENTUM'), time=67)
+    scanner.filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SIX_MONTH_MOMENTUM'),time=137)
+    scanner.filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_YEAR_MOMENTUM'), time=250)
 
     combine_csv(os.getenv('ONE_MONTH_GAINERS'),
                 os.getenv('THREE_MONTH_GAINERS'),
