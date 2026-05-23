@@ -63,8 +63,8 @@ def filter_consolidation(
         for _, row in recent.iterrows():
             close = row['close']
             # Check all three SMAs for this row
-            sma10_ok = 0.92 * close <= row['SMA_10'] <= 1.08 * close
-            sma20_ok = 0.92 * close <= row['SMA_20'] <= 1.08 * close
+            sma10_ok = 0.95 * close <= row['SMA_10'] <= 1.05 * close
+            sma20_ok = 0.95 * close <= row['SMA_20'] <= 1.05 * close
             if sma10_ok and sma20_ok:
                 passing_days += 1
 
@@ -84,9 +84,7 @@ def filter_consolidation(
         (latest_df['adr_percent'] > 4) &
         (latest_df['$Volume'] > 1_000_000) &
         (latest_df['close'] > 3) &
-        (latest_df['volume'] > 200_000) &
-        (latest_df['Normalized'] <= norm_thresh) &
-        (latest_df['adr_distance'] <= adr_dist_thresh)
+        (latest_df['volume'] > 200_000)
     )
     filtered = latest_df[mask]
 

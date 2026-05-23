@@ -14,12 +14,12 @@ def run_API():
     api.fetch_OHLCV(os.getenv('SYMBOLS'), os.getenv('OHLCV_DATA_RAW'), start_date)
 
 # noinspection PyArgumentList
-def combine_csv(one_month, three_month, six_month, one_year, rankings, output):
+def combine_csv(one_month, three_month, six_month, one_year, sector_rankings, output):
     df1 = pd.read_csv(one_month)
     df2 = pd.read_csv(three_month)
     df3 = pd.read_csv(six_month)
     df4 = pd.read_csv(one_year)
-    df5 = pd.read_csv(rankings)
+    df5 = pd.read_csv(sector_rankings)
 
     df6 = pd.concat([df1, df2, df3, df4], ignore_index=True)
     df6 = df6.drop_duplicates(subset=['symbol', 'datetime'], keep='first')
