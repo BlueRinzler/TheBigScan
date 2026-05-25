@@ -104,19 +104,14 @@ def filter_consolidation(
         Lookback window for the bands squeeze check. Default 10.
     """
     df = load_data(input_file)
-
     # 1. Growth filter
     df = apply_growth_filter(df, lookback=time, factor=growth_factor)
-
     # 2. Bands‑in‑channel (consolidation) filter
     df = apply_bands_filter(df, window=window, min_pass=min_pass_days)
-
     # 3. Latest row per symbol
     latest = get_latest_rows(df)
-
     # 4. Numeric filters (no SMA check here)
     final = apply_latest_numeric_filters(latest, sma_check=False)
-
     save_data(final, output_file, label="Consolidation final output")
 
 
@@ -137,14 +132,10 @@ def filter_momentum(
         Growth multiplier, default 1.2.
     """
     df = load_data(input_file)
-
     # 1. Growth filter
     df = apply_growth_filter(df, lookback=time, factor=growth_factor)
-
     # 2. Latest row per symbol
     latest = get_latest_rows(df)
-
     # 3. Numeric filters + SMA proximity (close above all three SMAs)
     final = apply_latest_numeric_filters(latest, sma_check=True)
-
     save_data(final, output_file, label="Momentum final output")
