@@ -1,146 +1,150 @@
 import pandas as pd
+from typing import Optional
 
+def load_data(input_file: str) -> pd.DataFrame:
+    """Read CSV, parse dates, sort by symbol and datetime."""
+    df = pd.read_csv(input_file)
+    df['datetime'] = pd.to_datetime(df['datetime'])
+    return df.sort_values(['symbol', 'datetime'])
+
+def growth_filter(group: pd.DataFrame, lookback: int, factor: float = 1.2) -> bool:
+    """Return True if symbol has enough data and latest close >= factor * close 'lookback' days ago."""
+    if len(group) < lookback:
+        return False
+    latest_close = group['close'].iloc[-1]
+    close_ago = group['close'].iloc[-lookback]
+    return latest_close >= factor * close_ago
+
+def apply_growth_filter(df: pd.DataFrame, lookback: int, factor: float = 1.2) -> pd.DataFrame:
+    """Keep only symbols that pass the growth condition."""
+    return df.groupby('symbol', group_keys=False).filter(
+        lambda g: growth_filter(g, lookback, factor)
+    )
+
+def passes_bands(group: pd.DataFrame, window: int = 10, min_pass: int = 8) -> bool:
+    """
+    Check if, over the most recent `window` days, the Bollinger Bands are
+    consistently inside (or touching) the Keltner Channels.
+    """
+    if len(group) < window:
+        return False
+    recent = group[['upper_band', 'lower_band', 'upper_channel', 'lower_channel']].tail(window).dropna()
+    if len(recent) < min_pass:
+        return False
+    passing = (
+        (recent['upper_band'] <= recent['upper_channel']) &
+        (recent['lower_band'] >= recent['lower_channel'])
+    ).sum()
+    return passing >= min_pass
+
+def apply_bands_filter(df: pd.DataFrame, window: int = 10, min_pass: int = 8) -> pd.DataFrame:
+    """Keep only symbols that pass the Bollinger/Keltner containment check."""
+    # Get boolean mask per symbol (True = keep)
+    good_symbols = df.groupby('symbol').filter(
+        lambda g: passes_bands(g, window, min_pass)
+    )['symbol'].unique()
+    return df[df['symbol'].isin(good_symbols)]
+
+def get_latest_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Return a DataFrame containing only the most recent row for each symbol."""
+    latest_idx = df.groupby('symbol')['datetime'].idxmax()
+    return df.loc[latest_idx].copy()
+
+def apply_latest_numeric_filters(
+    latest_df: pd.DataFrame,
+    adr_min: float = 4.0,
+    dollar_volume_min: float = 1_000_000,
+    close_min: float = 3.0,
+    volume_min: float = 200_000,
+    sma_check: bool = False
+) -> pd.DataFrame:
+    """
+    Filter the latest‑row DataFrame using basic liquidity/price criteria.
+    If `sma_check` is True, also require close > SMA_10, SMA_20, SMA_50.
+    """
+    mask = (
+        (latest_df['adr_percent'] > adr_min) &
+        (latest_df['$Volume'] > dollar_volume_min) &
+        (latest_df['close'] > close_min) &
+        (latest_df['volume'] > volume_min)
+    )
+    if sma_check:
+        mask = mask & (
+            (latest_df['SMA_10'] < latest_df['close']) &
+            (latest_df['SMA_20'] < latest_df['close']) &
+            (latest_df['SMA_50'] < latest_df['close'])
+        )
+    return latest_df[mask]
+
+def save_data(df: pd.DataFrame, output_file: str, label: str = "output") -> None:
+    """Save DataFrame to CSV and print summary."""
+    df.to_csv(output_file, index=False)
+    print(f"{label}: {len(df)} rows. Saved to {output_file}")
 
 def filter_consolidation(
     input_file: str,
     output_file: str,
     time: int,
     min_pass_days: int = 8,
-    norm_thresh: float = 5.0,      # Max Normalized (%) - SMA spread
-    adr_dist_thresh: float = 0.7   # Max adr_distance (units)
+    growth_factor: float = 1.2,
+    window: int = 10,
 ) -> None:
     """
-    Reads a CSV of market data, applies a growth filter,
-    then a 10‑day SMA proximity filter that requires at least
-    `min_pass_days` out of the last 10 days to have closes
-    within 5% of their SMAs. Finally, keeps the latest row
-    per symbol and applies remaining numeric filters including
-    Normalized and adr_distance thresholds.
+    Screen for stocks in a consolidation after a growth surge.
 
     Parameters
     ----------
-    input_file : str
-        Path to input CSV.
-    output_file : str
-        Path to output CSV.
     time : int
-        Lookback days for the growth filter (latest close >= 1.2 * close that many days ago).
+        Lookback days for growth check (latest close >= growth_factor * close `time` days ago).
     min_pass_days : int, optional
-        Minimum number of days (out of the last 10) that must pass
-        the daily SMA proximity check. Default = 8.
-    norm_thresh : float, optional
-        Maximum allowed Normalized value (SMA20‑SMA10 spread %). Default = 5.0.
-    adr_dist_thresh : float, optional
-        Maximum allowed adr_distance (|price - SMA10| / adr_dollar). Default = 0.7.
+        Min days (out of `window`) with Bollinger inside Keltner. Default 8.
+    growth_factor : float, optional
+        Growth multiplier, default 1.2 (+20%).
+    window : int, optional
+        Lookback window for the bands squeeze check. Default 10.
     """
+    df = load_data(input_file)
 
-    df = pd.read_csv(input_file)
-    df['datetime'] = pd.to_datetime(df['datetime'])
-    df = df.sort_values(['symbol', 'datetime'])
+    # 1. Growth filter
+    df = apply_growth_filter(df, lookback=time, factor=growth_factor)
 
-    # ---- 1. Growth filter (unchanged) ----
-    def passes_growth_check(group: pd.DataFrame) -> bool:
-        if len(group) < time:
-            return False
-        latest_close = group['close'].iloc[-1]
-        close_ago = group['close'].iloc[-time]
-        return latest_close >= 1.2 * close_ago
+    # 2. Bands‑in‑channel (consolidation) filter
+    df = apply_bands_filter(df, window=window, min_pass=min_pass_days)
 
-    df = df.groupby('symbol', group_keys=False).filter(passes_growth_check)
+    # 3. Latest row per symbol
+    latest = get_latest_rows(df)
 
-    # ---- 2. 10‑day SMA proximity filter with minimum pass days ----
-    def passes_sma_threshold(group: pd.DataFrame, window: int = 10, min_pass: int = 8) -> bool:
-        """
-        Return True if at least `min_pass` of the last `window` days
-        have close within ±5% of all three SMAs on that day.
-        """
-        if len(group) < window:
-            return False
+    # 4. Numeric filters (no SMA check here)
+    final = apply_latest_numeric_filters(latest, sma_check=False)
 
-        recent = group.tail(window)
-        passing_days = 0
-
-        for _, row in recent.iterrows():
-            close = row['close']
-            # Check all three SMAs for this row
-            sma10_ok = 0.95 * close <= row['SMA_10'] <= 1.05 * close
-            sma20_ok = 0.95 * close <= row['SMA_20'] <= 1.05 * close
-            if sma10_ok and sma20_ok:
-                passing_days += 1
-
-        return passing_days >= min_pass
-
-    symbols_ok = df.groupby('symbol').filter(
-        lambda grp: passes_sma_threshold(grp, window=10, min_pass=min_pass_days)
-    )['symbol'].unique()
-    df = df[df['symbol'].isin(symbols_ok)]
-
-    # ---- 3. Latest row per remaining symbol ----
-    latest_idx = df.groupby('symbol')['datetime'].idxmax()
-    latest_df = df.loc[latest_idx].copy()
-
-    # ---- 4. Numeric filters (SMA part already handled) ----
-    mask = (
-        (latest_df['adr_percent'] > 4) &
-        (latest_df['$Volume'] > 1_000_000) &
-        (latest_df['close'] > 3) &
-        (latest_df['volume'] > 200_000)
-    )
-    filtered = latest_df[mask]
-
-    # ---- 5. Save ----
-    filtered.to_csv(output_file, index=False)
-    print(f"Final output: {len(filtered)} rows. Saved to {output_file}")
+    save_data(final, output_file, label="Consolidation final output")
 
 
-
-def filter_momentum(input_file: str, output_file: str, time: int) -> None:
+def filter_momentum(
+    input_file: str,
+    output_file: str,
+    time: int,
+    growth_factor: float = 1.2,
+) -> None:
     """
-    Reads a CSV of market data, applies a 22-day growth filter first,
-    then the original four filters, keeping only the latest row per symbol.
+    Screen for stocks with strong upward momentum.
+
+    Parameters
+    ----------
+    time : int
+        Lookback days for growth check.
+    growth_factor : float, optional
+        Growth multiplier, default 1.2.
     """
-    # Load the data
-    df = pd.read_csv(input_file)
+    df = load_data(input_file)
 
-    # Ensure datetime is parsed correctly and sort by symbol and date
-    df['datetime'] = pd.to_datetime(df['datetime'])
-    df = df.sort_values(['symbol', 'datetime'])
+    # 1. Growth filter
+    df = apply_growth_filter(df, lookback=time, factor=growth_factor)
 
-    # ---- NEW: Filter symbols where latest close >= 1.2 * close 22 trading days ago ----
-    def passes_growth_check(group: pd.DataFrame) -> bool:
-        """Return True if symbol has >=23 rows and the 22‑day growth condition is met."""
-        if len(group) < time:          # need at least latest + 22 prior trading days
-            return False
-        latest_close = group['close'].iloc[-1]
-        close_ago = group['close'].iloc[-time]   # 22 trading days before the latest
-        return latest_close >= 1.2 * close_ago
+    # 2. Latest row per symbol
+    latest = get_latest_rows(df)
 
-    # Create a mask of symbols that satisfy the growth condition
-    symbols_ok = df.groupby('symbol', group_keys=False).filter(passes_growth_check)['symbol'].unique()
-    # Keep only those symbols in the full dataset
-    df = df[df['symbol'].isin(symbols_ok)]
+    # 3. Numeric filters + SMA proximity (close above all three SMAs)
+    final = apply_latest_numeric_filters(latest, sma_check=True)
 
-    # ---- Step 1: Get the latest date for each (remaining) symbol ----
-    latest_idx = df.groupby('symbol')['datetime'].idxmax()
-    latest_df = df.loc[latest_idx].copy()
-
-    # ---- Step 2: Apply all five post‑growth filters ----
-    mask = (
-        (latest_df['adr_percent'] > 4) &
-        (latest_df['$Volume'] > 1_000_000) &
-        (latest_df['close'] > 3) &
-        (latest_df['volume'] > 200_000) &
-        # New SMA proximity filter:
-        (latest_df['SMA_10'] < latest_df['close']) &
-        (latest_df['SMA_20'] < latest_df['close']) &
-        (latest_df['SMA_50'] < latest_df['close'])
-    )
-    filtered = latest_df[mask]
-
-    # ---- Step 3: Write the result ----
-    filtered.to_csv(output_file, index=False)
-
-    print(f"Growth filter kept {len(symbols_ok)} symbols. "
-          f"Final output: {len(filtered)} rows. Saved to {output_file}")
-
-
+    save_data(final, output_file, label="Momentum final output")

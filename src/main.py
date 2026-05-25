@@ -33,15 +33,15 @@ def gen_data():
     rankings.generate_sector_rankings(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SYMBOLS'), os.getenv('SECTOR_RANKINGS'))
     compute.compute_data(os.getenv('OHLCV_DATA_RAW'), os.getenv('COMPUTED_DATA_RAW'))
 
-    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_MONTH_GAINERS'), time=23)
-    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('THREE_MONTH_GAINERS'),  time=67)
-    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SIX_MONTH_GAINERS'), time=137)
-    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_YEAR_GAINERS'),  time=250)
+    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_MONTH_GAINERS'), time=21)
+    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('THREE_MONTH_GAINERS'),  time=63)
+    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SIX_MONTH_GAINERS'), time=126)
+    scanner.filter_consolidation(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_YEAR_GAINERS'),  time=249)
 
-    scanner.filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_MONTH_MOMENTUM'), time=23)
-    scanner.filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('THREE_MONTH_MOMENTUM'), time=67)
-    scanner.filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SIX_MONTH_MOMENTUM'),time=137)
-    scanner.filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_YEAR_MOMENTUM'), time=250)
+    scanner.filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_MONTH_MOMENTUM'), time=21)
+    scanner.filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('THREE_MONTH_MOMENTUM'), time=63)
+    scanner.filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('SIX_MONTH_MOMENTUM'),time=126)
+    scanner.filter_momentum(os.getenv('COMPUTED_DATA_RAW'), os.getenv('ONE_YEAR_MOMENTUM'), time=249)
 
     combine_csv(os.getenv('ONE_MONTH_GAINERS'),
                 os.getenv('THREE_MONTH_GAINERS'),
