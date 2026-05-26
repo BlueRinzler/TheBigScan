@@ -45,10 +45,3 @@ def test_apply_latest_numeric_filters():
     assert len(res) == 1
     assert res.iloc[0]['symbol'] == 'A'
 
-if __name__ == '__main__':
-    test_growth_filter_basic()
-    test_growth_filter_short_data()
-    test_passes_bands_all_ok()
-    test_passes_bands_not_enough_data()
-    test_apply_latest_numeric_filters()
-

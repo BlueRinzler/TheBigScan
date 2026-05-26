@@ -2,3 +2,4 @@
 *.csv
 #Ignore API Keys
 .env
+pytest.ini

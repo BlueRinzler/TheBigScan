@@ -57,36 +57,30 @@ def add_intra_industry_ranks(
     perf_cols: Optional[list] = None,
     rank_suffix: str = '_rank'
 ) -> pd.DataFrame:
-    """
-    Within each industry, rank symbols by each performance column.
-    Highest value gets rank 1. Missing values are ignored and remain NaN.
-    """
     if perf_cols is None:
         perf_cols = ['%Year', '%6Month', '%3Month', '%1Month']
 
     df = df.copy()
-    # Clean infinities
     df[perf_cols] = df[perf_cols].replace([np.inf, -np.inf], np.nan)
 
     rank_cols = [f'{c}{rank_suffix}' for c in perf_cols]
     for rc in rank_cols:
-        df[rc] = pd.NA
+        df[rc] = np.nan
 
-    for industry, ind_df in df.groupby('industry'):
+    # ⬇️  dropna=False keeps the NaN‑industry group
+    for industry, ind_df in df.groupby('industry', dropna=False):
         for pc, rc in zip(perf_cols, rank_cols):
-            # Sort descending: highest % → rank 1
-            sorted_idx = ind_df[pc].sort_values(ascending=False).index
-            # Assign ranks 1..len(ind_df)
-            df.loc[sorted_idx, rc] = range(1, len(ind_df) + 1)
+            valid_mask = ind_df[pc].notna()
+            valid_idx = ind_df.index[valid_mask]
+            sorted_valid = ind_df.loc[valid_idx, pc].sort_values(ascending=False)
+            df.loc[sorted_valid.index, rc] = range(1, len(valid_idx) + 1)
 
     return df
 
-
 def add_industry_stock_count(df: pd.DataFrame) -> pd.DataFrame:
-    """Add column 'industry_stock_count' = number of symbols per industry."""
-    counts = df.groupby('industry').size().rename('industry_stock_count')
+    # ⬇️  dropna=False so that NaN industry is counted
+    counts = df.groupby('industry', dropna=False).size().rename('industry_stock_count')
     return df.merge(counts, on='industry')
-
 
 # ----------------------------------------------------------------------
 # Pure pipeline – orchestrates the logic, returns a DataFrame
